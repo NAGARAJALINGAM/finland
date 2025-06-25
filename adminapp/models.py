@@ -66,6 +66,7 @@ class Productmaster(models.Model):
     is_published=models.BooleanField(default=False)
     product_stock=models.CharField(max_length=20,default='10')
     images=ArrayField(JSONField(), blank=True, default=list)
+    mrp = models.DecimalField(max_digits=29, decimal_places=3, default='0')
     is_active = models.BooleanField(default=True)
     created_by = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -74,3 +75,41 @@ class Productmaster(models.Model):
     class Meta:
         db_table = ("product_master")
         ordering = ('created_at',)
+
+
+class OrderDetails(models.Model):
+
+    """This is the model to save the order details"""
+
+    consumerid = models.CharField(max_length=32, blank=True, null=True)
+    product_id = models.ForeignKey(Productmaster, on_delete=models.SET_NULL, null=True, related_name='productid')
+    completeddatetime = models.DateTimeField(null=True)
+    cancellationdone = models.BooleanField(default=False)
+    cancelled_by = models.CharField(max_length=30, blank=True, null=True)
+    cancellationdatetime = models.DateTimeField(null=True)
+    paymentdone = models.BooleanField(default=False)
+    order_status = models.CharField(max_length=32, default='inprogress')
+    wrapupsstatus = models.CharField(max_length=32, default='')
+    order_completed = models.BooleanField(default=False)
+    created_by = models.IntegerField(null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_by = models.IntegerField(null=True)
+    modified_at = models.DateTimeField(auto_now=True, null=True)
+    cancellationreason = models.CharField(max_length=300, null=True)
+    class Meta:
+        db_table = 'order_details'
+        ordering = ('-created_at',)
+
+class Cartitems(models.Model):
+
+    product=models.ForeignKey(Productmaster,on_delete=models.CASCADE,related_name = 'cartitem_user_product')
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name = 'cartitem_user')
+    quantity=models.IntegerField(default=0)  
+    is_active = models.BooleanField(default=True)
+    created_by = models.CharField(max_length=20,null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_by = models.CharField(max_length=20,null=True,blank=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        db_table = ("user_cart")
+        ordering = ('-created_at',)
