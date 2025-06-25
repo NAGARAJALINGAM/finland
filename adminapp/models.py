@@ -113,3 +113,40 @@ class Cartitems(models.Model):
     class Meta:
         db_table = ("user_cart")
         ordering = ('-created_at',)
+
+
+class SellableOrderDetails(models.Model):
+    #store the user where user is in CustomUser
+    orderid = models.ForeignKey(OrderDetails, related_name='orderdetails_id', on_delete=models.CASCADE)
+    item_count=models.IntegerField(blank=True,null=True,default=0)
+    price=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    total_tax=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    total_price=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    total_delivery_fee = models.DecimalField(max_digits=19, decimal_places=3, default='0')
+    is_returned=models.BooleanField(default=False)
+    return_replace_actiondetails = JSONField(default=dict,null=True,blank=True)
+    return_pickup_location=models.CharField( max_length=250,null=True, blank=True)
+    return_reason=models.TextField(blank=True,null=True)
+    return_quantity=models.IntegerField(default=0)
+    return_price=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    return_tax_total=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    return_price_total=models.DecimalField(max_digits=10,default=0,decimal_places=3)
+    approved_by=models.IntegerField(blank=True, null=True)
+    return_completed_time=models.DateTimeField(null=True, blank=True)
+    is_replacement=models.BooleanField(default=False)
+    replacement_pickup_location=models.CharField( max_length=250,null=True, blank=True)
+    replacement_reason=models.TextField(blank=True,null=True)
+    replacement_completed_time=models.DateTimeField(null=True, blank=True)
+    return_replace_quantity=models.IntegerField(default=0)
+    delivered_location= models.TextField(null=True, blank=True)
+    delivered_area = models.CharField(max_length=30,null=True,blank=True)
+    delivered_time=models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.IntegerField(blank=True, null=True)
+    modified_at = models.DateTimeField(auto_now=True)  
+    modified_by = models.IntegerField(blank=True, null=True)   
+   
+    class Meta:
+        db_table = 'sellable_order_details'
+        ordering = ('created_at',)
+ 
