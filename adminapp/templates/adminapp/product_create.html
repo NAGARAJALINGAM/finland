@@ -1,0 +1,776 @@
+<!-- {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product List</title>
+<style>
+    * {
+      box-sizing: border-box;
+    }
+ 
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+    }
+ 
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+ 
+    .top-bar {
+      max-width: 1200px;
+      margin: 10px auto 20px auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+ 
+    #add-product-btn {
+      padding: 10px 16px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+ 
+    #product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+ 
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+ 
+    .card:hover {
+      transform: scale(1.03);
+    }
+ 
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
+ 
+    .info {
+      font-size: 14px;
+      margin: 4px 0;
+      color: #555;
+    }
+ 
+    .error {
+      text-align: center;
+      color: red;
+      margin-top: 20px;
+    }
+ 
+   .modal {
+  display: none; /* hidden by default */
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+ 
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+   }
+ 
+.modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  position: relative;
+  margin: 0 auto;  /* remove margin since flex centers */
+}
+ 
+ 
+    .close {
+      position: absolute;
+      right: 16px;
+      top: 10px;
+      font-size: 20px;
+      cursor: pointer;
+      color: #aaa;
+    }
+ 
+    .close:hover {
+      color: black;
+    }
+ 
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+ 
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+ 
+    button[type="submit"] {
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+ 
+    .message {
+      margin-top: 16px;
+      text-align: center;
+      font-weight: bold;
+    }
+ 
+    .message.success { color: green; }
+    .message.error { color: red; }
+</style>
+</head>
+<body>
+ 
+  <h2>Product List</h2>
+<div class="top-bar">
+<button id="add-product-btn">Add Product</button>
+</div>
+<div id="product-list"></div>
+<p id="error" class="error"></p>
+ 
+  <!-- ✅ Modal placed at the end of body -->
+<!-- <div id="product-modal" class="modal">
+<div class="modal-content">
+<span class="close" id="close-modal">&times;</span>
+<h3>Create New Product</h3>
+<form id="product-form" enctype="multipart/form-data">
+<label for="product">Product Name</label>
+<input type="text" id="product" name="product" required>
+ 
+        <label for="description">Description</label>
+<textarea id="description" name="description" rows="3"></textarea>
+ 
+        <label for="mrp">MRP (₹)</label>
+<input type="number" id="mrp" name="mrp" required>
+ 
+        <label for="product_stock">Stock Quantity</label>
+<input type="number" id="product_stock" name="product_stock" value="10">
+ 
+        <label for="expected_delivery_days">Expected Delivery Days</label>
+<input type="number" id="expected_delivery_days" name="expected_delivery_days" value="10">
+ 
+        <label for="return_days">Return Days</label>
+<input type="number" id="return_days" name="return_days" value="0">
+ 
+        <label for="image">Image</label>
+<input type="file" id="image" name="image" accept="image/*">
+ 
+        <button type="submit">Add Product</button>
+</form>
+<p id="message" class="message"></p>
+</div>
+</div>
+ 
+  <script>
+    const token = localStorage.getItem('auth_token');
+    const listEl = document.getElementById('product-list');
+    const errEl  = document.getElementById('error');
+    const modal = document.getElementById('product-modal');
+    const form = document.getElementById('product-form');
+    const message = document.getElementById('message');
+ 
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('/admin/api/create/products/', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(res => {
+        if (res.status === 401) {
+          errEl.textContent = 'Unauthorized – please log in again.';
+          throw new Error('Unauthorized');
+        }
+        if (!res.ok) {
+          errEl.textContent = 'Server error: ' + res.status;
+          throw new Error('HTTP ' + res.status);
+        }
+        return res.json();
+      })
+      .then(json => {
+        if (json.status === 'success') {
+          const products = json.data || [];
+          if (!products.length) {
+            errEl.textContent = 'No products available.';
+            return;
+          }
+          products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+<div class="title">${p.product_name}</div>
+<div class="info"><strong>Stock:</strong> ${p.product_stock}</div>
+<div class="info"><strong>Return Available:</strong> ${p.is_return_policy_available ? 'Yes' : 'No'}</div>
+<div class="info"><strong>Return Days:</strong> ${p.return_policy || 'N/A'}</div>
+            `;
+            listEl.appendChild(card);
+          });
+        } else {
+          errEl.textContent = json.message || 'Failed to load products.';
+        }
+      })
+      .catch(err => {
+        console.error(err);
+      });
+    });
+ 
+    // Open modal
+   document.getElementById('add-product-btn').onclick = () => {
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+};
+ 
+ 
+    // Close modal
+    document.getElementById('close-modal').onclick = () => {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+      form.reset();
+      message.textContent = '';
+    };
+ 
+    // Close when clicking outside the modal content
+    window.onclick = (e) => {
+      if (e.target == modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        form.reset();
+        message.textContent = '';
+      }
+    };
+ 
+    // Submit form
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      message.textContent = '';
+      message.className = 'message';
+ 
+      const formData = new FormData(form);
+ 
+      fetch('/admin/api/create/products/', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+        body: formData
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (json.status === 'success') {
+          message.textContent = json.message || 'Product added!';
+          message.classList.add('success');
+          form.reset();
+          modal.style.display = 'none';
+          document.body.style.overflow = 'auto';
+          window.location.reload(); // to reflect new product
+        } else {
+          message.textContent = json.message || 'Failed to add product.';
+          message.classList.add('error');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        message.textContent = 'Network error.';
+        message.classList.add('error');
+      });
+    });
+</script>
+</body>
+</html> -->
+
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+ 
+  <title>Product Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+ 
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      /*background: url('file:///C:/Users/ThanalakshmiPaulraj/Downloads/blob-scene-haikei.svg'), #f0f4f8;*/
+      background-repeat: repeat;
+    }
+    .background-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+ 
+.wave-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+}
+ 
+.wave-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+}
+ 
+ 
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin: 20px 0;
+      font-size: 2rem;
+    }
+ 
+    .top-bar {
+    max-width: 1200px;
+    margin: 0 auto 20px auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    color: #4642db;
+    justify-content: flex-end;
+    padding: 0 20px;
+    }
+ 
+    #add-product-btn, #view-history{
+      padding: 10px 20px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+ 
+    #add-product-btn:hover {
+      background-color: #1a242f;
+    }
+ 
+    #product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+ 
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+ 
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+ 
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+ 
+    .info {
+      font-size: 14px;
+      margin: 4px 0;
+      color: #555;
+    }
+ 
+    .error {
+      text-align: center;
+      color: red;
+      margin-top: 20px;
+    }
+ 
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+ 
+    .modal-content {
+      background-color: #fff;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+      animation: fadeIn 0.3s ease;
+    }
+ 
+    @keyframes fadeIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+ 
+    .close {
+      position: absolute;
+      right: 20px;
+      top: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #888;
+      cursor: pointer;
+    }
+ 
+    .close:hover {
+      color: #333;
+    }
+ 
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+ 
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+ 
+    button[type="submit"] {
+      margin-top: 20px;
+      padding: 12px 20px;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+ 
+    button[type="submit"]:hover {
+      background: #1a242f;
+    }
+ 
+    .message {
+      margin-top: 16px;
+      text-align: center;
+      font-weight: bold;
+    }
+ 
+    .message.success {
+      color: green;
+    }
+ 
+    .message.error {
+      color: red;
+    }
+    .card .add-to-cart {
+  margin-top: 15px;
+  display: inline-block;
+  background-color: #2c3e50;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+.hidden {
+  display: none;
+}
+
+ 
+.card .add-to-cart:hover {
+  background-color: #1a242f;
+}
+ 
+  </style>
+</head>
+<body>
+  <h2> Product List</h2>
+ 
+  <!--<div class="top-bar">-->
+  <!--  <button id="add-product-btn">âž• Add Product</button>-->
+  <!--<i class="fas fa-cart-plus"></i></div>-->
+  <div class="top-bar">
+  <button id="add-product-btn" class="hidden">Add Product</button>
+  <i id="cart-icon" class="fas fa-cart-plus hidden"></i>
+  <button id="view-history" class="hidden">View Order</button>
+</div>
+
+  <!-- Curved Gradient Background using SVG -->
+<div class="background-wrapper">
+  <svg class="wave-top" viewBox="0 0 1440 320">
+    <path fill="#a2d8fa" fill-opacity="1" d="M0,160L60,144C120,128,240,96,360,112C480,128,600,192,720,202.7C840,213,960,171,1080,160C1200,149,1320,171,1380,181.3L1440,192L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"></path>
+  </svg>
+ 
+  <svg class="wave-bottom" viewBox="0 0 1440 320">
+    <path fill="#f1c4f2" fill-opacity="0.4" d="M0,128L60,154.7C120,181,240,235,360,240C480,245,600,203,720,181.3C840,160,960,160,1080,154.7C1200,149,1320,139,1380,133.3L1440,128L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+  </svg>
+</div>
+ 
+  <div id="product-list"></div>
+  <p id="error" class="error"></p>
+ 
+  <!-- Modal -->
+  <div id="product-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="close-modal">&times;</span>
+      <h3>Create New Product</h3>
+      <form id="product-form" enctype="multipart/form-data">
+        <label for="product">Product Name</label>
+        <input type="text" id="product" name="product" required>
+ 
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+ 
+        <label for="mrp">MRP (â‚¹)</label>
+        <input type="number" id="mrp" name="mrp" required>
+ 
+        <label for="product_stock">Stock Quantity</label>
+        <input type="number" id="product_stock" name="product_stock" value="10">
+ 
+        <label for="expected_delivery_days">Expected Delivery Days</label>
+        <input type="number" id="expected_delivery_days" name="expected_delivery_days" value="10">
+ 
+        <label for="return_days">Return Days</label>
+        <input type="number" id="return_days" name="return_days" value="0">
+ 
+        <label for="image">Image</label>
+        <input type="file" id="image" name="image" accept="image/*">
+ 
+        <button type="submit">Add Product</button>
+      </form>
+      <p id="message" class="message"></p>
+    </div>
+  </div>
+ 
+  <script>
+    const role = localStorage.getItem('role');  // "admin" or "customer"
+    // const role="admin" 
+    const token = localStorage.getItem('auth_token');
+    const listEl = document.getElementById('product-list');
+    const errEl = document.getElementById('error');
+    const modal = document.getElementById('product-modal');
+    const form = document.getElementById('product-form');
+    const message = document.getElementById('message');
+ 
+    document.addEventListener('DOMContentLoaded', () => {
+      // const role="customer"
+      const role = localStorage.getItem('role');
+  const addBtn = document.getElementById('add-product-btn');
+  const cartIcon = document.getElementById('cart-icon');
+  const ViewIcon = document.getElementById('view-history');
+  if (role === 'admin') {
+    addBtn.classList.remove('hidden');
+  } else if (role === 'customer') {
+    cartIcon.classList.remove('hidden');
+    ViewIcon.classList.remove('hidden')
+    
+  }
+      fetch('/admin/api/create/products/', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(res => {
+          if (res.status === 401) {
+            errEl.textContent = 'Unauthorized â€“ please log in again.';
+            throw new Error('Unauthorized');
+          }
+          if (!res.ok) {
+            errEl.textContent = 'Server error: ' + res.status;
+            throw new Error('HTTP ' + res.status);
+          }
+          return res.json();
+        })
+        .then(json => {
+          if (json.status === 'success') {
+            const products = json.data || [];
+            if (!products.length) {
+              errEl.textContent = 'No products available.';
+              return;
+            }
+ 
+            products.forEach(p => {
+              const card = document.createElement('div');
+              card.className = 'card';
+              card.innerHTML = `
+  <img src="${p.image}" alt="${p.product_name}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+  <div class="title">${p.product_name}</div>
+  <div class="info"><strong>Stock:</strong> ${p.product_stock}</div>
+  <div class="info"><strong>Return Available:</strong> ${p.is_return_policy_available ? 'Yes' : 'No'}</div>
+  <div class="info"><strong>Return Days:</strong> ${p.return_policy || 'N/A'}</div>
+  <button class="add-to-cart" data-id="${p.id}">
+    <i class="fas fa-cart-plus"></i> Add to Cart
+  </button>
+`;
+              listEl.appendChild(card);
+            });
+          } else {
+            errEl.textContent = json.message || 'Failed to load products.';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+        });
+    });
+ 
+    document.getElementById('add-product-btn').onclick = () => {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    };
+ 
+    document.getElementById('close-modal').onclick = () => {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+      form.reset();
+      message.textContent = '';
+    };
+ 
+    window.onclick = (e) => {
+      if (e.target == modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        form.reset();
+        message.textContent = '';
+      }
+    };
+    // Add event listeners to all "Add to Cart" buttons
+document.querySelectorAll('.add-to-cart').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const productId = this.getAttribute('data-id');
+    addToCart(productId);
+  });
+});
+ 
+function addToCart(productId) {
+  fetch('/cart/api/add/', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ product_id: productId })
+  })
+    .then(res => res.json())
+    .then(json => {
+      if (json.status === 'success') {
+        alert('Product added to cart!');
+      } else {
+        alert(json.message || 'Failed to add to cart.');
+      }
+    })
+    .catch(err => {
+      console.error('Add to cart error:', err);
+      alert('Something went wrong while adding to cart.');
+    });
+}
+ 
+ 
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      message.textContent = '';
+      message.className = 'message';
+ 
+      const formData = new FormData(form);
+ 
+      fetch('/admin/api/create/products/', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        body: formData
+      })
+        .then(res => res.json())
+        .then(json => {
+          if (json.status === 'success') {
+            message.textContent = json.message || 'Product added!';
+            message.classList.add('success');
+            form.reset();
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            window.location.reload();
+          } else {
+            message.textContent = json.message || 'Failed to add product.';
+            message.classList.add('error');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          message.textContent = 'Network error.';
+          message.classList.add('error');
+        });
+    });
+  </script>
+</body>
+</html>
+ 

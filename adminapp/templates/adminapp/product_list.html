@@ -1,0 +1,713 @@
+<!-- {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product List</title>
+<style>
+
+    * {
+
+      box-sizing: border-box;
+
+    }
+
+    body {
+
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+
+    }
+
+    h2 {
+
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+
+    }
+
+    #product-list {
+
+      display: grid;
+
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
+      gap: 20px;
+
+      max-width: 1200px;
+
+      margin: 0 auto;
+
+      padding: 0 10px;
+
+    }
+
+    .card {
+
+      background: #fff;
+
+      padding: 16px;
+
+      border-radius: 8px;
+
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+      transition: transform 0.2s;
+
+    }
+
+    .card:hover {
+
+      transform: scale(1.03);
+
+    }
+
+    .title {
+
+      font-size: 18px;
+
+      font-weight: bold;
+
+      margin-bottom: 8px;
+
+      color: #333;
+
+    }
+
+    .info {
+
+      font-size: 14px;
+
+      margin: 4px 0;
+
+      color: #555;
+
+    }
+
+    .error {
+
+      text-align: center;
+
+      color: red;
+
+      margin-top: 20px;
+
+    }
+ 
+    /* Optional responsive tweak for small screens */
+
+    @media (max-width: 600px) {
+
+      .card {
+
+        padding: 12px;
+
+      }
+
+    }
+</style>
+</head>
+<body>
+<h2>Product List</h2>
+<div id="product-list"></div>
+<p id="error" class="error"></p>
+ 
+  <script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+      const token = localStorage.getItem('auth_token');
+
+      const listEl = document.getElementById('product-list');
+
+      const errEl  = document.getElementById('error');
+ 
+      fetch('/admin/api/create/products/', {
+
+        method: 'GET',
+
+        headers: {
+
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+
+      })
+
+      .then(res => {
+
+        if (res.status === 401) {
+
+          errEl.textContent = 'Unauthorized – please log in again.';
+
+          throw new Error('Unauthorized');
+
+        }
+
+        if (!res.ok) {
+
+          errEl.textContent = 'Server error: ' + res.status;
+
+          throw new Error('HTTP ' + res.status);
+
+        }
+
+        return res.json();
+
+      })
+
+      .then(json => {
+
+        if (json.status === 'success') {
+
+          const products = json.data || [];
+
+          if (!products.length) {
+
+            errEl.textContent = 'No products available.';
+
+            return;
+
+          }
+
+          products.forEach(p => {
+
+            const card = document.createElement('div');
+
+            card.className = 'card';
+
+            card.innerHTML = `
+<div class="title">${p.product_name}</div>
+<div class="info"><strong>Stock:</strong> ${p.product_stock}</div>
+<div class="info"><strong>Return Available:</strong> ${p.is_return_policy_available ? 'Yes' : 'No'}</div>
+<div class="info"><strong>Return Days:</strong> ${p.return_policy || 'N/A'}</div>
+
+            `;
+
+            listEl.appendChild(card);
+
+          });
+
+        } else {
+
+          errEl.textContent = json.message || 'Failed to load products.';
+
+        }
+
+      })
+
+      .catch(err => {
+
+        console.error(err);
+
+        // Keep existing errEl.textContent if already set
+
+      });
+
+    });
+</script>
+</body>
+</html>
+
+ 
+ -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product List</title>
+<style>
+
+    * {
+
+      box-sizing: border-box;
+
+    }
+
+    body {
+
+      font-family: 'Segoe UI', sans-serif;
+
+      background: #f5f7fa;
+
+      margin: 0;
+
+      padding: 20px;
+
+    }
+
+    h2 {
+
+      text-align: center;
+
+      color: #2c3e50;
+
+      margin-bottom: 10px;
+
+      max-width: 1200px;
+
+      margin-left: auto;
+
+      margin-right: auto;
+
+    }
+
+    .top-bar {
+
+      max-width: 1200px;
+
+      margin: 10px auto 20px auto;
+
+      display: flex;
+
+      justify-content: flex-end;
+
+    }
+
+    #add-product-btn {
+
+      padding: 10px 16px;
+
+      background-color: #2c3e50;
+
+      color: white;
+
+      border: none;
+
+      border-radius: 4px;
+
+      cursor: pointer;
+
+    }
+
+    #product-list {
+
+      display: grid;
+
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
+      gap: 20px;
+
+      max-width: 1200px;
+
+      margin: 0 auto;
+
+      padding: 0 10px;
+
+    }
+
+    .card {
+
+      background: #fff;
+
+      padding: 16px;
+
+      border-radius: 8px;
+
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+      transition: transform 0.2s;
+
+    }
+
+    .card:hover {
+
+      transform: scale(1.03);
+
+    }
+
+    .title {
+
+      font-size: 18px;
+
+      font-weight: bold;
+
+      margin-bottom: 8px;
+
+      color: #333;
+
+    }
+
+    .info {
+
+      font-size: 14px;
+
+      margin: 4px 0;
+
+      color: #555;
+
+    }
+
+    .error {
+
+      text-align: center;
+
+      color: red;
+
+      margin-top: 20px;
+
+    }
+ 
+    /* Modal styles */
+
+    .modal {
+
+      display: none;
+
+      z-index: 1000;
+
+      left: 0; top: 0;
+
+      width: 100%; height: 100%;
+
+    }
+
+    .modal-content {
+
+      background-color: #fff;
+
+      margin: 80px auto;
+
+      padding: 20px;
+
+      border-radius: 8px;
+
+      width: 90%;
+
+      max-width: 600px;
+
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+
+      position: relative;
+
+    }
+
+    .close {
+
+      position: absolute;
+
+      right: 16px;
+
+      top: 10px;
+
+      font-size: 20px;
+
+      cursor: pointer;
+
+      color: #aaa;
+
+    }
+
+    .close:hover {
+
+      color: black;
+
+    }
+
+    label {
+
+      display: block;
+
+      margin-top: 12px;
+
+      font-weight: bold;
+
+    }
+
+    input, textarea {
+
+      width: 100%;
+
+      padding: 8px;
+
+      margin-top: 4px;
+
+      border: 1px solid #ccc;
+
+      border-radius: 4px;
+
+    }
+
+    button[type="submit"] {
+
+      margin-top: 16px;
+
+      padding: 10px 16px;
+
+      background: #2c3e50;
+
+      color: white;
+
+      border: none;
+
+      border-radius: 4px;
+
+      cursor: pointer;
+
+    }
+
+    .message {
+
+      margin-top: 16px;
+
+      text-align: center;
+
+      font-weight: bold;
+
+    }
+
+    .message.success { color: green; }
+
+    .message.error { color: red; }
+</style>
+</head>
+<body>
+ 
+<h2>Product List</h2>
+<div class="top-bar">
+<button id="add-product-btn">Add Product</button>
+</div>
+<div id="product-list"></div>
+<p id="error" class="error"></p>
+ 
+<!-- Modal -->
+<div id="product-modal" class="modal">
+<div class="modal-content">
+<span class="close" id="close-modal">&times;</span>
+<h3>Create New Product</h3>
+<form id="product-form" enctype="multipart/form-data">
+<label for="product">Product Name</label>
+<input type="text" id="product" name="product" required>
+ 
+      <label for="description">Description</label>
+<textarea id="description" name="description" rows="3"></textarea>
+ 
+      <label for="mrp">MRP (₹)</label>
+<input type="number" id="mrp" name="mrp" required>
+ 
+      <label for="product_stock">Stock Quantity</label>
+<input type="number" id="product_stock" name="product_stock" value="10">
+ 
+      <label for="expected_delivery_days">Expected Delivery Days</label>
+<input type="number" id="expected_delivery_days" name="expected_delivery_days" value="10">
+ 
+      <label for="return_days">Return Days</label>
+<input type="number" id="return_days" name="return_days" value="0">
+ 
+      <label for="image">Image</label>
+<input type="file" id="image" name="image" accept="image/*">
+ 
+      <button type="submit">Add Product</button>
+</form>
+<p id="message" class="message"></p>
+</div>
+</div>
+ 
+<script>
+
+  const token = localStorage.getItem('auth_token');
+
+  const listEl = document.getElementById('product-list');
+
+  const errEl  = document.getElementById('error');
+
+  const modal = document.getElementById('product-modal');
+
+  const form = document.getElementById('product-form');
+
+  const message = document.getElementById('message');
+ 
+  // Load existing products
+
+  document.addEventListener('DOMContentLoaded', () => {
+
+    fetch('/admin/api/create/products/', {
+
+      method: 'GET',
+
+      headers: {
+
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+
+      }
+
+    })
+
+    .then(res => {
+
+      if (res.status === 401) {
+
+        errEl.textContent = 'Unauthorized – please log in again.';
+
+        throw new Error('Unauthorized');
+
+      }
+
+      if (!res.ok) {
+
+
+        throw new Error('HTTP ' + res.status);
+
+      }
+
+      return res.json();
+
+    })
+
+    .then(json => {
+
+      if (json.status === 'success') {
+
+        const products = json.data || [];
+
+        if (!products.length) {
+
+          errEl.textContent = 'No products available.';
+
+          return;
+
+        }
+
+        products.forEach(p => {
+
+          const card = document.createElement('div');
+
+          card.className = 'card';
+
+          card.innerHTML = `
+<div class="title">${p.product_name}</div>
+<div class="info"><strong>Stock:</strong> ${p.product_stock}</div>
+<div class="info"><strong>Return Available:</strong> ${p.is_return_policy_available ? 'Yes' : 'No'}</div>
+<div class="info"><strong>Return Days:</strong> ${p.return_policy || 'N/A'}</div>
+
+          `;
+
+          listEl.appendChild(card);
+
+        });
+
+      } else {
+
+        errEl.textContent = json.message || 'Failed to load products.';
+
+      }
+
+    })
+
+    .catch(err => {
+
+      console.error(err);
+
+    });
+
+  });
+ 
+  // Open modal
+
+  document.getElementById('add-product-btn').onclick = () => {
+
+    modal.style.display = 'block';
+
+  };
+  // Close modal
+
+  document.getElementById('close-modal').onclick = () => {
+
+    modal.style.display = 'none';
+
+    form.reset();
+
+    message.textContent = '';
+
+  };
+ 
+  window.onclick = (e) => {
+
+    if (e.target == modal) {
+
+      modal.style.display = 'none';
+
+      form.reset();
+
+      message.textContent = '';
+
+    }
+
+  };
+ 
+  // Submit form
+
+  form.addEventListener('submit', function(e) {
+
+    e.preventDefault();
+ 
+    message.textContent = '';
+
+    message.className = 'message';
+ 
+    const formData = new FormData(form);
+ 
+    fetch('/admin/api/create/products/', {
+
+      method: 'POST',
+
+      headers: {
+
+        'Authorization': 'Bearer ' + token,
+
+      },
+
+      body: formData
+
+    })
+
+    .then(res => res.json())
+
+    .then(json => {
+
+      if (json.status === 'success') {
+
+        message.textContent = json.message || 'Product added!';
+
+        message.classList.add('success');
+
+        form.reset();
+
+        modal.style.display = 'none';
+
+        window.location.reload(); // Optional: reload to see new product
+
+      } else {
+
+        message.textContent = json.message || 'Failed to add product.';
+
+        message.classList.add('error');
+
+      }
+
+    })
+
+    .catch(err => {
+
+      console.error(err);
+
+      message.textContent = 'Network error.';
+
+      message.classList.add('error');
+
+    });
+
+  });
+</script>
+</body>
+</html>
+
+ 

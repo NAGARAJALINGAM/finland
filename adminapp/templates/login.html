@@ -1,0 +1,184 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form id="login-form">
+        <label>Mobile Number:</label><br>
+        <input type="text" id="mobile_number" name="mobile_number" required><br><br>
+
+        <label>Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="message" style="color:red;"></p>
+
+    <script>
+        document.getElementById("login-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const mobile_number = document.getElementById("mobile_number").value;
+            const password = document.getElementById("password").value;
+
+            fetch("/login_user/", {  // ✅ Fixed this URL
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    mobile_number: mobile_number,
+                    password: password
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || "Something went wrong");
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === "success") {
+                    const token = data.data[0].token;
+                    const role = data.data[0].role;
+
+                    localStorage.setItem("auth_token", token);
+                    localStorage.setItem("role", role);
+
+                    // ✅ Redirect based on role
+                    if (role === "admin") {
+                        window.location.href = "/admin/products/";
+                    } else {
+                        window.location.href = "/user/products/";
+                    }
+                } else {
+                    document.getElementById("message").textContent = data.messege || "Login failed.";
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById("message").textContent = "Login failed.";
+            });
+        });
+    </script>
+</body>
+</html> -->
+
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'adminapp/login.css' %}" />
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-section">
+            <h1>Welcome Back!</h1>
+        </div>
+        <div class="login-section">
+            <h2>Login</h2>
+            <p>Welcome back! Please login to your account.</p>
+            <form id="login-form">
+                <label>Mobile Number:</label>
+                <input type="text" id="mobile_number" name="mobile_number" required />
+
+
+
+                <label>Password:</label>
+                <input type="password" id="password" name="password" required />
+
+
+
+                <div class="options">
+                    <label class="password-label">
+                        <input type="checkbox" /> Remember Me
+                    </label>
+                    <a href="#">Forgot Password?</a>
+                </div>
+
+
+
+                <button type="submit">Login</button>
+
+
+
+                <p class="message" id="message"></p>
+
+
+
+                <p class="signup-text">
+                    New User? <a href="#">Signup</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+
+
+    <script>
+        document.getElementById("login-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+
+
+            const mobile_number = document.getElementById("mobile_number").value;
+            const password = document.getElementById("password").value;
+
+
+
+            fetch("/login_user/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    mobile_number: mobile_number,
+                    password: password
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || "Something went wrong");
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === "success") {
+                    const token = data.data[0].token;
+                    const role = data.data[0].role;
+
+
+
+                    localStorage.setItem("auth_token", token);
+                    localStorage.setItem("role", role);
+
+
+
+                    if (role === "admin") {
+                        window.location.href = "/admin/api/products/";
+                    } else {
+                        window.location.href = "/admin/api/products/new/";
+                    }
+                } else {
+                    document.getElementById("message").textContent = data.messege || "Login failed.";
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById("message").textContent = "Login failed.";
+            });
+        });
+    </script>
+</body>
+</html>

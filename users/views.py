@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
-from adminapp .models import Rolemaster,RoleMapping
+from adminapp .models import Rolemaster,RoleMapping,OrderDetails,Productmaster,SellableOrderDetails
 from rest_framework import status
 import json
 from rest_framework_jwt.serializers import jwt_payload_handler, jwt_encode_handler
@@ -16,6 +16,10 @@ import random
 from users.auth import email_validations
 from django.contrib.auth.hashers import make_password,check_password
 from users.get_role_details import get_user_roles
+from django import forms
+from django.contrib.auth import authenticate, login
+from django.db import transaction
+
 class Useronboarding(APIView):
     def get(self,request):
         try:
@@ -84,6 +88,52 @@ class Useronboarding(APIView):
         except Exception as e:
             return Response({"status":"error","message":"something went wrong "+str(e)},status=status.HTTP_400_BAD_REQUEST)
 
+
+
+from .forms import LoginForm
+
+def login_view(request):
+    form = LoginForm(request.POST or None)
+    msg = None
+
+    if request.method == "POST":
+
+        if form.is_valid():
+            mobile_number = form.cleaned_data.get("mobile_number")
+            password = form.cleaned_data.get("password")
+
+            user = authenticate(request, mobile_number=mobile_number, password=password)
+            
+            if user is None:
+                msg = 'Profile not found'
+                return render(request, "home/login.html", {"form": form, "messages": msg})
+
+            try:
+                user_group_obj = CustomUser.objects.get(id=user.id)
+            except:
+                msg = 'Profile not found'
+                return render(request, "home/login.html", {"form": form, "messages": msg})
+
+            if user is not None:
+                login(request, user)
+                return redirect("/templates/productdetails.html/")
+
+            else:
+                msg = 'Invalid credentials'
+                return render(request, "home/login.html", {"form": form, "messages": msg})
+        else:
+            print("error in login", form.errors)
+            msg = 'Error validating the form'
+
+        form = Productmasterform()
+    return render(request, 'adminpp/product_list_create.html', {'form': form})
+
+
+
+
+
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny, ])
 def LoginAPI(request):
@@ -94,7 +144,7 @@ def LoginAPI(request):
 
         try:
             userobj =  CustomUser.objects.get(mobilenumber=mobile_num)
-        except CustomUser.DoesNotExist():
+        except CustomUser.DoesNotExist:
             return Response ({"status":"warning","messege":"User not found","is_valid":True},status=status.HTTP_401_UNAUTHORIZED)
         
         if not check_password(password,userobj.password):
@@ -107,13 +157,12 @@ def LoginAPI(request):
             payload = jwt_payload_handler(userobj)
             payload['role']=authorized_roles                      #including role in this payload
             token = jwt_encode_handler(payload)
-            details=[]
-            details.append({
+            details=[{
                 "firstname":userobj.first_name,
                 "lastname":userobj.last_name,
                 "role":authorized_roles,
                 "token":token
-            })
+            }]
             return Response({"status":"success","messege":"user details fetched successfully","data":details},status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -148,3 +197,103 @@ class ForgotpasswordAPI(APIView):
             print(f"Traceback: {traceback_info}")
             return Response({"status":"error","message":"something went wrong "+str(e)},status=status.HTTP_400_BAD_REQUEST)
 
+
+
+class OrderDetailsCreation(APIView):
+
+    def get(self,request):
+        data=request.query_params
+        orderid = data.get('orderid')
+
+        access_role=get_user_roles(request)
+        if access_role not in ['user']:
+            return Response({'status': 'error', 'message': 'You are not authenticated to perform this action'}, status=status.HTTP_401_UNAUTHORIZED)
+        if orderid is not None:
+            order_obj = [OrderDetails.objects.get(id=orderid)]
+        else:
+            order_obj = OrderDetails.objects.filter(is_active=True,created_by=request.user.id)
+
+        try:
+            details=[]
+            for obj in order_obj:
+                details.append({
+                    "orderid":obj.id,
+                    "product_id":obj.product_id.id,
+                    "product_name":obj.product_id.product,
+                    "quantity":obj.completeddatetime,
+                    "is_paymentdone":obj.paymentdone,
+                    "order_status":obj.order_status,
+                    "order_completed":obj.order_completed,
+
+                })
+            message = 'Order details fetched successfully'
+            return Response({'status': 'success', 'message': message}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'status': 'error', 'message': 'Something went wrong...' + str(e)},status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self,request):
+        data=request.data
+        product = data.get('product')
+        quantity = data.get('quantity')
+        delivery_area = data.get('delivery_area')
+        delivery_location = data.get('delivery_location')
+        item_count = data.get('item_count')
+        total_delivery_fee = data.get('total_delivery_fee')
+
+        access_role=get_user_roles(request)
+
+        if access_role not in ['admin']:
+            return Response({'status': 'error', 'message': 'You are not authenticated to perform this action'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            productobj = Productmaster.objects.get(id=product)
+        except Productmaster.DoesNotExist:
+            return Response({'status': 'warning', 'message': 'Product not found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        transaction.set_autocommit(False)
+        try:
+            orderobj = OrderDetails(product_id=productobj,consumerid=request.user.id,
+                                    created_by=request.user.id)
+            orderobj.save()
+            selling_obj = SellableOrderDetails(orderid=orderobj,item_count=item_count,quantity=quantity,delivery_location=delivery_location,
+                                               delivery_area=delivery_area,created_by=request.user.id,total_price=orderobj.product_id.mrp,total_delivery_fee=total_delivery_fee)
+            selling_obj.save()
+            transaction.commit()
+            message = 'cart items created successfully'
+            return Response({'status': 'success', 'message': message}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(e)
+            return Response({'status': 'error', 'message': 'Something went wrong...' + str(e)},status=status.HTTP_400_BAD_REQUEST)
+
+
+    def put(self,request):
+        data=request.data
+        orderid = data.get('orderid')
+        order_status = data.get('order_status')
+        quantity = data.get('quantity')
+
+        access_role=get_user_roles(request)
+        
+        if access_role not in ['user']:
+            return Response({'status': 'error', 'message': 'You are not authenticated to perform this action'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            order_obj=OrderDetails.objects.get(id=orderid)
+        except OrderDetails.DoesNotExist:
+            return Response({'status': 'warning', 'message': 'order not found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            transaction.set_autocommit(False)
+            order_obj.order_status=order_status
+            order_obj.order_completed=True if order_status == 'completed' else False
+            order_obj.modified_by=request.user.id
+            order_obj.save()
+            transaction.commit()
+            message = 'Orders updated successfully'
+            return Response({'status': 'success', 'message': message}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'status': 'error', 'message': 'Something went wrong...' + str(e)},status=status.HTTP_400_BAD_REQUEST)

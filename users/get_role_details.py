@@ -7,5 +7,6 @@ def get_user_roles(request):
     if authorization_header:
         token = authorization_header.split(' ')[1]
         decoded_data = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        print(decoded_data)
         roles = decoded_data.get('role')
     return roles
