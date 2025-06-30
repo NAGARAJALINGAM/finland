@@ -1,9 +1,11 @@
 from django.db import models
 from users.models import CustomUser
 # Create your models here.
-from django.contrib.postgres.fields import JSONField,ArrayField
-
-
+from django.contrib.postgres.fields import ArrayField
+from django.db.models import JSONField
+# 
+def product_image_upload_path(instance, filename):
+    return f'products/{instance.product}/{filename}'
 class Rolemaster(models.Model):
     role = models.CharField(max_length=55,null=True,blank=True)
     role_desc = models.CharField(max_length=55,null=True,blank=True)
@@ -66,6 +68,7 @@ class Productmaster(models.Model):
     is_published=models.BooleanField(default=False)
     product_stock=models.CharField(max_length=20,default='10')
     images=ArrayField(JSONField(), blank=True, default=list)
+    product_image = models.ImageField(upload_to=product_image_upload_path,blank=True,null=True)
     mrp = models.DecimalField(max_digits=29, decimal_places=3, default='0')
     is_active = models.BooleanField(default=True)
     created_by = models.IntegerField()
